@@ -10,6 +10,33 @@ wn.tracer(0)
 score = 0
 highscore = 0 
 
+fragments = []
+
+class Fragment(turtle.Turtle):
+    def __init__(self, x, y, color):
+        super().__init__(shape="square")
+        self.penup()
+        self.color(color)
+        self.shapesize(0.2, 0.2) 
+        self.goto(x, y)
+        
+        #==== RANDOM EXPLOSION VELOCITY ====
+
+        self.dx = random.uniform(-1, 1)#INCREASE SPREAD
+        self.dy = random.uniform(1, 3)# INCREASE UPWARD BURST
+        self.gravity = -0.03 # GRAVITY
+        self.life = 100 # LIFETIME
+
+    def move(self):
+        self.dy += self.gravity # Apply gravity
+        self.setx(self.xcor() + self.dx)
+        self.sety(self.ycor() + self.dy)
+        self.life -= 1
+        current_size = (self.life / 60) * 0.2
+        if current_size > 0:
+            self.shapesize(current_size, current_size)
+        if self.life <=0:
+            self.hideturtle()
 
 class GameItem:
     def __init__(self, shape, color, stretch_wid=1, stretch_len=1, x=0, y=0):
@@ -68,6 +95,13 @@ class Player(GameItem):
 
         return x_collision and y_collision
     
+    def explode(self):
+        x = self.turtle.xcor()
+        y = self.turtle.ycor()
+        color = self.turtle.pencolor()
+
+        for _ in range(15): 
+            fragments.append(Fragment(x, y, color))
 
 class Enemy(GameItem):
     def __init__(self):
@@ -84,24 +118,24 @@ class Enemy(GameItem):
                 self.turtle.shapesize(stretch_wid=thickness, stretch_len=wall_size)
                 self.turtle.goto(random.randint(-380, 380), 300)
                 self.dx = 0
-                self.dy = -random.uniform(0.1, 0.3)
+                self.dy = -random.uniform(0.1, 0.5)
                 
             elif side == "bottom":
                 self.turtle.shapesize(stretch_wid=thickness, stretch_len=wall_size)
                 self.turtle.goto(random.randint(-380, 380), -300)
                 self.dx = 0
-                self.dy = random.uniform(0.1, 0.3)
+                self.dy = random.uniform(0.1, 0.5)
                 
             elif side == "left":
                 self.turtle.shapesize(stretch_wid=wall_size, stretch_len=thickness)
                 self.turtle.goto(-400, random.randint(-280, 280))
-                self.dx = random.uniform(0.1, 0.3) 
+                self.dx = random.uniform(0.1, 0.5)
                 self.dy = 0
                 
             elif side == "right":
                 self.turtle.shapesize(stretch_wid=wall_size, stretch_len=thickness)
                 self.turtle.goto(400, random.randint(-280, 280))
-                self.dx = -random.uniform(0.1, 0.3)
+                self.dx = -random.uniform(0.1, 0.5)
                 self.dy = 0
 
 
@@ -176,62 +210,72 @@ wn.onkeyrelease(release_d, "d")
 
 player = Player(0,0)
 enemies = [Enemy() for i in range(2)]
-while True:
-    wn.update()
-    player.turtle.up()
 
-    # ==== MOVE PLAYER ON KEY PRESS ====
+try:
+    while True:
+        wn.update()
+        player.turtle.up()
 
-    if keys["w"]:  player.move_up()
-    if keys["s"]: player.move_down()
-    if keys["a"]: player.move_left()
-    if keys["d"]: player.move_right()
+        # ==== MOVE PLAYER ON KEY PRESS ====
 
-    #==== INCREASE DIFFICULTY ====
+        if keys["w"]:  player.move_up()
+        if keys["s"]: player.move_down()
+        if keys["a"]: player.move_left()
+        if keys["d"]: player.move_right()
 
-    if score < 20:
-        pass  
-    elif score < 40:
-        if len(enemies) < 4:
-            enemies.append(Enemy()) 
-            enemies.append(Enemy())    
-    elif score < 60:
-        if len(enemies) < 6:
-            enemies.append(Enemy()) 
-            enemies.append(Enemy())     
-    elif score < 80:
-        if len(enemies) < 8:
-            enemies.append(Enemy()) 
-            enemies.append(Enemy())         
-    elif score < 100:
-        if len(enemies) < 10:
-            enemies.append(Enemy()) 
-            enemies.append(Enemy())       
-    else:
-        if len(enemies) < 12:
-            enemies.append(Enemy()) 
-            enemies.append(Enemy()) 
+        #==== INCREASE DIFFICULTY ====
 
-    #==== ENEMY MOVEMENT ====
-    for enemy in enemies:
-        enemy.move()
+        if score < 20:
+            pass  
+        elif score < 40:
+            if len(enemies) < 4:
+                enemies.append(Enemy()) 
+                enemies.append(Enemy())    
+        elif score < 60:
+            if len(enemies) < 6:
+                enemies.append(Enemy()) 
+                enemies.append(Enemy())     
+        elif score < 80:
+            if len(enemies) < 8:
+                enemies.append(Enemy()) 
+                enemies.append(Enemy())         
+        elif score < 100:
+            if len(enemies) < 10:
+                enemies.append(Enemy()) 
+                enemies.append(Enemy())       
+        else:
+            if len(enemies) < 12:
+                enemies.append(Enemy()) 
+                enemies.append(Enemy()) 
 
-        if player.check_collision(enemy):
-            if score > highscore:
-                highscore = score
-            score = 0
-            wn.bgcolor("white")
-            for enemy in enemies:
-                enemy.turtle.hideturtle()
-            enemies.clear()
-            enemies = [Enemy() for i in range(2)]
+        #==== DEATH ANIMATION ====
+        for fragment in fragments[:]: # Use a slice [:] to safely remove items while looping
+            fragment.move()
+            if fragment.life <= 0:
+                fragments.remove(fragment)
 
-            pen.clear()
-            pen.write(f"SCORE: {score} HIGH SCORE: {highscore}", align="center", font=("Consolas", 24, "bold"))
+        #==== ENEMY MOVEMENT ====
+        for enemy in enemies:
+            enemy.move()
 
-            print("HIT RESET SCORE")
-            player.turtle.goto(0,0)
+            if player.check_collision(enemy):
+                player.explode()
+                if score > highscore:
+                    highscore = score
+                score = 0
+                wn.bgcolor("white")
+                for enemy in enemies:
+                    enemy.turtle.hideturtle()
+                enemies.clear()
+                enemies = [Enemy() for i in range(2)]
 
-    time.sleep(0.0001)
-turtle.done()
-turtle.mainloop()
+                pen.clear()
+                pen.write(f"SCORE: {score} HIGH SCORE: {highscore}", align="center", font=("Consolas", 24, "bold"))
+
+                print("HIT RESET SCORE")
+                player.turtle.goto(0,0)
+
+        time.sleep(0.0001)
+except:
+    print("Game Closed.")
+    exit()
