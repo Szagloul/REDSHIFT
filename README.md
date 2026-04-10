@@ -21,7 +21,7 @@ A fast-paced, infinite survival dodger built with Python's Turtle graphics libra
 
 ## Usage
 
-1. Ensure you have **Python 3.x** installed on your system.
+1. Ensure you have **Python 3.14.2** installed on your system.
 2. Clone or download this repository.
 3. Run the script via your terminal or IDE:
    ```bash
@@ -30,7 +30,7 @@ A fast-paced, infinite survival dodger built with Python's Turtle graphics libra
 
 ## Technologies Used
 
-- **Python 3.x**
+- **Python 3.14.2**
 - **Turtle Graphics Library** (Standard Library)
 - **Random & Time modules** for procedural logic and frame timing.
 
